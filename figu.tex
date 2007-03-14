@@ -1,0 +1,285 @@
+\documentclass{enkidudoc}
+\begin{document}
+\input{meta.tex}
+\setcounter{page}{0}
+\maketitle
+\tableofcontents
+\thispagestyle{fancy}
+
+\vspace{\baselineskip}\hrule\vspace{\baselineskip}
+\centerline{\textbf{Example}}
+\figsrc{intro}{-84pt}
+
+\pagebreak
+\section{Introduction}
+
+Enkidu is software for generating geometric diagrams in \LaTeX{} documents.
+To make a diagram using Enkidu,
+you write a Python program describing the diagram;
+running this program creates PostScript and \LaTeX{} files
+which together produce the diagram in your document.
+
+The program on the title page, for example, produces the diagram shown there,
+which is the figure for Proposition~4 of Archimedes'
+\textit{Book of Lemmas},
+on the area of an arbelos.\footnote{\textit{The Works of Archimedes},
+ed.~T.~L.~Heath (Cambridge~UP, 1897; Dover, 2002),~305.}
+
+To use Enkidu at all, you need basic knowledge of Python.
+To label objects in your figure with mathematical notations,
+you need to know some \LaTeX.
+To produce effects that I haven't already arranged for,
+you will probably need to know some PostScript.
+
+\section{Typical structure of an Enkidu program}
+
+The example on the title page illustrates the typical structure
+of an Enkidu program, which consists of three main parts:
+geometric computations,
+creating a \texttt{figure} object,
+and drawing the figure.
+
+The first section computes the geometric objects needed to draw the figure.
+\begin{quote}{\small\begin{verbatim}
+circ = circle(vec.zero, 1)
+a = circ.pt(180)
+b = circ.pt(0)
+p = circ.pt(110)
+n = foot(p, join(a, b))
+\end{verbatim}}\end{quote}
+The circle \texttt{circ} is centred at the origin and has radius~$1$.
+The points \texttt{a},~\texttt{b}, and~\texttt{p}
+lie on this circle at angles $180^\circ$,~$0^\circ$, and~$110^\circ$
+respectively.
+(Angles in Enkidu are always denoted in degrees;
+$0^\circ$~is east and $90^\circ$~is north.)
+The point~\texttt{n} is computed geometrically:
+the expression~\texttt{join(a,~b)} computes the
+line through the points \texttt{a}~and~\texttt{b},
+and \texttt{n}~is computed as the foot of the perpendicular
+from the point~\texttt{p} to that line.
+
+Having computed all points of interest,
+the program creates the \texttt{figure} object~\texttt{f}.
+\begin{quote}{\small\begin{verbatim}
+lft, bot, rt, top = bbox(a, b, circ.pt(90))
+margin = 3
+width = 158 - 2*margin
+height = (top - bot)*width/(rt - lft)
+f = figure(width, height, margin, lft, bot, rt, top)
+\end{verbatim}}\end{quote}
+There are two coordinate systems at work in an Enkidu diagram:
+the ``drawing'' coordinate system and the ``figure'' coordinate system.
+In the drawing coordinate system,
+the bottom left corner of the figure is the origin,
+and $x$-~and~$y$-coordinates are measured in PostScript points
+(which \TeX{} calls ``big points'').
+The figure coordinate system may have its origin anywhere,
+and $x$-~and~$y$-units of any size;
+this coordinate system is used for points in the figure,
+and so can be chosen for convenience in that purpose,
+without regard to the actual size of the figure on the page.
+
+When a \texttt{figure} object is constructed,
+the user specifies seven values.
+The first three --- \texttt{width}, \texttt{height}, and \texttt{margin}
+--- specify the size of the figure on the page:
+\texttt{width + 2*margin} points wide
+and \texttt{height + 2*margin} points tall.
+The next four values specify the coordinates,
+in the figure coordinate system, of the edges of the drawing region,
+that is, the rectangle which is \texttt{width}~points wide
+and \texttt{height}~points tall.
+(Note that this region excludes the margin.)
+
+The example program computes these seven values
+by a method appropriate when the figure's desired total width
+(in the example, $158$~points) is known,
+and all other values should be accommodated to that value.
+The range of coordinates needed to represent
+the points of interest is computed with the \texttt{bbox}
+(bounding box) function;
+\texttt{width} is computed from the desired total width
+and the margin size;
+and \texttt{height} is computed in proportion to \texttt{width}.
+
+The third and last section of the program draws the figure:
+\begin{quote}{\small\begin{verbatim}
+for pt in [a,b,n,p]:
+    f.clipdot(pt)
+f.polyline(a, b)
+f.polyline(p, n)
+f.circle(circ, 0, 180)
+f.circle(circle.ondiam(a, n), 0, 180)
+f.circle(circle.ondiam(n, b), 0, 180)
+f.circle(circle.ondiam(p, n), 0, 360)
+f.label('$A$', 't', a)
+f.label('$B$', 't', b)
+f.label('$N$', 't', n)
+f.label('$P$', 'b', p)
+\end{verbatim}}\end{quote}
+This section is largely self-explanatory.
+Note that geometric computations may well take place here;
+for example, the semicircle on~$AN$ has no relevance
+to any prior computations, so it is created
+(by the expression \texttt{circle.ondiam(a, n)}) only when drawn.
+
+\pagebreak
+\section{Running an Enkidu program}
+
+An Enkidu program \texttt{foo.py} should end with these lines:
+\begin{quote}{\small\begin{verbatim}
+if __name__ == '__main__':
+    main(f)
+\end{verbatim}}\end{quote}
+Then a command such as
+\begin{quote}{\small\verb:python foo.py foo-fig:}\end{quote}
+will produce files \texttt{foo-fig.eps} and \texttt{foo-fig.tex}.
+
+The \texttt{.tex} file includes a \LaTeX{} \texttt{picture} environment
+which superimposes any labels produced by \texttt{f.label()} onto the figure;
+the line drawing itself is in the \texttt{.eps} file, and is included by
+the \verb:\includegraphics*: command
+(from the \texttt{graphics} package,
+which the including document must load).
+
+The \texttt{.tex} file can be \verb:\input: directly into your document.
+
+PDF\LaTeX{} wants graphics files in PDF format instead of EPS.
+Standard tools will convert \texttt{foo-fig.eps} to \texttt{foo-fig.pdf};
+but the \verb:\includegraphics*: command in \texttt{foo-fig.tex}
+will then refer to the wrong file.
+In this situation, invoke your Enkidu program with
+\begin{quote}{\small\verb:python foo.py foo-fig pdf:}\end{quote}
+The last argument specifies a ``fake suffix'':
+with this command, \texttt{foo-fig.eps} is created as usual,
+but the \verb:\includegraphics*: command in \texttt{foo-fig.tex}
+includes the file \texttt{foo-fig.pdf}.
+(It's up to you to convert the EPS file into a PDF
+before running PDF\LaTeX{} on your document.)
+
+The Enkidu source distribution includes a complete example
+of how to use Enkidu,
+to wit, the source for this document and all its figures,
+as well as a \texttt{Makefile} for generating this PDF file from that source.
+
+\pagebreak
+\section{Examples}
+
+The following examples demonstrate the basic facilities of Enkidu.
+The detailed documentation for all Enkidu classes and functions
+is in the source code; read it there or by way of the
+Python online help system.
+
+The examples omit boilerplate and the second section
+(the creation of the \texttt{figure} object) in each program;
+consult the source distribution for the complete code.
+
+The text accompanying the examples
+doesn't discuss everything of interest in every program;
+read the code.
+
+\subsection{Vector arithmetic}
+
+Vectors and points (Enkidu doesn't distinguish) are represented
+by instances of the \texttt{vec} class,
+which support the expected arithmetic operators.
+
+\figsrc{vectorops}{-105pt}
+
+\noindent This example uses a single forward slash
+to divide a \texttt{vec} by an \texttt{int}
+(in the expression~\texttt{(v-u)/2}).
+This practice requires that \texttt{\_\_future\_\_.division} be in effect;
+otherwise \texttt{/2} is interpreted as integer division,
+which \texttt{vec}s do not support.
+
+\pagebreak
+\subsection{More vector arithmetic: orthogonal projection}
+
+\texttt{vec}s support many other operations,
+including, as shown below, dot product and norm;
+see the online documentation for a complete list.
+
+\figsrc{vectorproj}{-136pt}
+
+\noindent As the last two lines illustrate,
+when many \LaTeX{} macros are needed in a label,
+it is convenient to use the Python ``raw string''
+syntax~\texttt{r'...'}\ to suppress the usual interpretation of backslashes.
+
+\pagebreak
+\subsection{Intersections: inversion as a composition of projections}
+
+This figure shows an interpretation of inversion % fixme xref
+as a composition of two stereographic projections.
+The horizontal line is a plane, viewed edge-on,
+bisecting a sphere at its equator;
+points $A$~and~$B$ are the north and south poles of the sphere.
+Let~$P$ be a point on the plane.
+Project~$P$ onto the sphere through the north pole;
+that is, let~$Q$ be the (other) intersection of~$AP$ with the sphere.
+Then project~$Q$ back onto the plane through the south pole;
+that is, let~$P'$ be the intersection of~$BQ$ with the plane.
+Then, it turns out,
+$P'$~is the inverse of~$P$ with respect to the equator of the sphere.
+
+\figsrc{intersect}{-183pt}
+
+The point~\texttt{p2} ($P'$~in the figure)
+is the intersection of~$BQ$ with the horizontal line;
+it is obtained with the \texttt{meet} function, which operates on lines
+and always returns a point
+(unless the lines are parallel, in which case it raises an exception).
+
+The point~\texttt{q} is the intersection of~$AP$ with the circle;
+it is obtained with the \texttt{intersect}~function,
+which operates on lines and/or circles,
+and returns a list of points of intersection.
+The line~$AP$ intersects the circle twice, at~$A$ and at~$Q$,
+so \texttt{intersect} returns a list containing those two points;
+the code must determine which one is~$Q$.
+The obvious way is to scan the list
+for an element~\texttt{pt} such that~\texttt{pt != a};
+but since floating point arithmetic is inexact,
+it is not certain that the point in the list representing
+the intersection at~$A$ will actually be equal to~\texttt{a}
+in the sense of~\texttt{==}.
+The example takes a more reliable course:
+\texttt{q}~is chosen to be the point of intersection
+which is furthest from~\texttt{a}.
+
+\pagebreak
+\subsection{More intersections: line meets parabola}
+
+This figure shows a construction
+for finding an intersection~$P$ of the line~$\ell$
+with the parabola with focus~$F$ and directrix~$d$,
+or rather, a construction for the case where $\ell$~and~$d$ meet.
+
+Let $\ell$~and~$d$ meet at~$N$.
+Pick any point~$Q$ on~$\ell$ other than~$N$.
+Draw a circle centred at~$Q$ and tangent to~$d$ at~$Q'$.
+Join~$NF$, meeting the circle at~$R$.
+Draw~$PF$ parallel to~$QR$, meeting~$\ell$ at~$P$.
+Let~$P'$ be the foot of the perpendicular from~$P$ to~$d$.
+By parallels,~$PF : PP' = QR : QQ' = 1$,
+and so~$P$ lies on the parabola as well as on~$\ell$.
+
+\figsrc{lineparab}{-74pt}
+
+The line~\texttt{d} is created by point and slope;
+the line \texttt{ell} is created by two points;
+in the computation of~\texttt{p}, a line is created
+by a point and a parallel line.
+Other options exist; see the online documentation.
+
+Note that, in the program, the lines \texttt{ell}~and~\texttt{d}
+are constructed from \texttt{n}~and~\texttt{q},
+reversing the procedure in the construction.
+
+The \verb:\rlap:-\verb:\phantom: dance makes the labels
+$P'$~and~$Q'$ nicely centred on the letter;
+otherwise the~$'$ exerts an undue influence on the positioning.
+
+\end{document}

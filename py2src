@@ -1,0 +1,5 @@
+BEGIN { print "{\\small\\begin{verbatim}"; include = 0 }
+/^#\-/ { include = 0 }
+include { print $0 }
+/^#\+/ { include = 1 }
+END { print "\\end{verbatim}}" }
