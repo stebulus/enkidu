@@ -16,10 +16,11 @@ tardir:=enkidu-$(shell cat meta/version)
 tar : $(tardir).tar.bz2
 .PHONY : tar
 
-$(tardir).tar.bz2 : $(tarrable)
+$(tardir).tar.bz2 $(tardir).zip : $(tarrable)
 	mkdir $(tardir)
 	tar cf - $(tarrable) | tar xf - -C $(tardir)
 	tar jcf $@ $(tardir)
+	zip -r $(tardir).zip $(tardir)
 	rm -rf $(tardir)
 
 enkidu.pdf : enkidu.tex meta.tex enkidudoc.cls $(figures_pdf) $(figures_src)
