@@ -1,5 +1,5 @@
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{figudoc}[2007/02/25]
+\ProvidesClass{enkidudoc}[2007/03/14]
 \LoadClass{article}
 \RequirePackage{euler}
 \RequirePackage{palatino}
