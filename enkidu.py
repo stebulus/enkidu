@@ -447,7 +447,7 @@ def _intersect_circleline(circ, lin):
         return [circ.o + xpart + ypart, circ.o + xpart - ypart]
 
 def _intersect_circlecircle(circ1, circ2):
-    odiff = circ1.o - circ2.o
+    odiff = circ2.o - circ1.o
     d = odiff.norm
     try:
         xlen = (d + (circ1.r**2 - circ2.r**2)/d)/2
