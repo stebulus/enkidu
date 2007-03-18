@@ -454,7 +454,7 @@ def _intersect_circlecircle(circ1, circ2):
     except ZeroDivisionError:  # d == 0; circles are concentric
         return []
     try:
-        ylen = sqrt(circ1.r**2 - a**2)
+        ylen = sqrt(circ1.r**2 - xlen**2)
     except ValueError:  # sqrt of negative; circles do not meet
         return []
     xdir = unit(odiff)  # odiff != vec.zero because d != 0
