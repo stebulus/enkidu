@@ -799,7 +799,7 @@ class figure(object):  # fixme inline docs, implementation
     def curve(self, a, b, c, d):
         """Draw a cubic Bezier spline with the given control points."""
         self.ps('%s %s moveto %s %s %s %s %s %s curveto stroke'
-                (a.x, a.y, b.x, b.y, c.x, c.y, d.x, d.y))
+                % (a.x, a.y, b.x, b.y, c.x, c.y, d.x, d.y))
 
     def qurve(self, a, b, c):
         """Draw a quadratic Bezier spline with the given control points."""
@@ -854,14 +854,35 @@ class figure(object):  # fixme inline docs, implementation
         # fixme does this work in distorted coords?
         leg1 = size*unit(b-a)/self.xscale
         leg2 = size*unit(c-b)/self.xscale
-        self.ps(
-            '%s %s moveto %s %s 2 copy neg rmoveto %s %s rlineto rlineto stroke'
+        self.ps('%s %s moveto %s %s 2 copy neg exch neg exch rmoveto '
+            '%s %s rlineto rlineto stroke'
             % (b.x, b.y, leg1.x, leg1.y, leg2.x, leg2.y))
 
     def angmark(self, a, b, c, size=4):
         """Add a circular angle mark to the angle a-b-c."""
         # fixme does this work in distorted coords?
         self.circle(circle(b, size/self.xscale), (a-b).angle, (c-b).angle)
+
+    def segmark(self, pt1, pt2, n, size=4, gap=2, angle=60):
+        """Add tick marks to the middle of the segment pt1-pt2."""
+        # fixme move bulk of PS code into figure._PSPROC
+        midpt = (pt1 + pt2)/2
+        v = vec.polar(size/2, angle)
+        self.ps('%s %s moveto' % (midpt.x, midpt.y))
+        self.ps('{')
+        self.ps('currentpoint translate')
+        self.ps('%s rotate' % (pt2 - pt1).angle)
+        self.ps('%s currentlinewidth add %s mul 2 div neg 0 rmoveto' % (gap, n))
+        self.ps('%s %s' % (v.x, v.y))
+        self.ps('1 1 %s {' % n)
+        self.ps('   pop')
+        self.ps('   2 copy neg exch neg exch rmoveto')
+        self.ps('   2 copy 2 mul exch 2 mul exch rlineto')
+        self.ps('   2 copy neg exch neg exch rmoveto')
+        self.ps('   %s currentlinewidth add 0 rmoveto' % gap)
+        self.ps('} for')
+        self.ps('pop pop stroke')
+        self.ps('} drawing')
 
 # class figure(object):
 # 
