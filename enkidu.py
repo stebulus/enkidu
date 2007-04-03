@@ -53,6 +53,12 @@ def topmost(pts):
     """The topmost of the points in pts."""
     return withmax(lambda pt: pt.y, pts)
 
+def outermost(pts):
+    """The outermost two of the (assumed collinear) points in pts."""
+    pt1 = withmax(distfrom(pts[0]), pts)
+    pt2 = withmax(distfrom(pt1), pts)
+    return pt1, pt2
+
 class vec(object):
     """A vector or point (we don't distinguish) in the plane.
 
