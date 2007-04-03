@@ -207,6 +207,7 @@ class line(object):
         line.ptnorm(pt, v)      the line through pt with normal v
         line.ptdir(pt, v)       the line through pt in direction v
         line.ptslope(pt, m)     the line through pt with slope m
+        line.ptangle(pt, ang)   the line through pt at angle ang
         join(pt1, pt2)          the line through pt1 and pt2
         parallel(pt, lin)       the line through pt and parallel to lin
         perp(pt, lin)           the line through pt and perpendicular to lin
@@ -241,6 +242,10 @@ class line(object):
     def ptslope(cls, pt, m):
         """The line through pt with slope m."""
         return cls.ptdir(pt, vec(1, m))
+    @classmethod
+    def ptangle(cls, pt, ang):
+        """The line through pt at angle ang."""
+        return cls.ptdir(pt, vec(cos(ang*deg), sin(ang*deg)))
 
     def __str__(self):
         return '<line %sx + %sy = %s>' % self._tuple
