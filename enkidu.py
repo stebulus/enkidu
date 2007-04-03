@@ -212,6 +212,7 @@ class line(object):
         parallel(pt, lin)       the line through pt and parallel to lin
         perp(pt, lin)           the line through pt and perpendicular to lin
         perpbisect(pt1, pt2)    the perpendicular bisector of segment pt1 pt2
+        angbisect(p, q, r)      the angle bisector of angle p q r
     """
     def __init__(self, a, b, c):
         """The line with equation a*x + b*y = c.
@@ -338,6 +339,13 @@ def perpbisect(pt1, pt2):
     Raises GeometryError if pt1 == pt2.
     """
     return line.ptnorm((pt1+pt2)/2, pt1-pt2)
+
+def angbisect(p, q, r):
+    """The (internal) angle bisector of angle p q r.
+
+    Raises GeometryError if the three points are not distinct.
+    """
+    return perpbisect(q + unit(p-q), q + unit(r-q))
 
 class circle(object):
     """A circle.
@@ -701,10 +709,10 @@ class figure(object):  # fixme inline docs, implementation
         self.ps('%!PS-Adobe-3.0 EPSF-3.0')
         self.ps('%%%%BoundingBox: 0 0 %d %d' % (fullwidth, fullheight))
         self.ps(self._PSPROC)
-        self.ps('/fullwidth %s def' % fullwidth)
-        self.ps('/fullheight %s def' % fullheight)
-        self.ps('/width %s def' % width)
-        self.ps('/height %s def' % height)
+        self.ps('/fullwidth %f def' % fullwidth)
+        self.ps('/fullheight %f def' % fullheight)
+        self.ps('/width %f def' % width)
+        self.ps('/height %f def' % height)
 
         self.ps('gsave')
         self.translate(margin, margin)
@@ -712,7 +720,7 @@ class figure(object):  # fixme inline docs, implementation
         self.translate(-lft, -bot)
 
         self.tex('\\setlength{\\unitlength}{1bp}%')
-        self.tex('\\begin{picture}(%s,%s)' % (fullwidth, fullheight))
+        self.tex('\\begin{picture}(%d,%d)' % (fullwidth, fullheight))
 
     def emit(self, ps, tex, fakeext=None):
         """Write the figure to the given files."""
@@ -744,7 +752,7 @@ class figure(object):  # fixme inline docs, implementation
         A "clipped dot" is a little circle whose interior is clipped
         out, so that future drawing will not leave marks in it.
         """
-        self.ps('%s %s clipdot' % (pt.x, pt.y))
+        self.ps('%f %f clipdot' % (pt.x, pt.y))
 
     def polyline(self, *pts, **kwargs):
         """Draw a sequence of line segments.
@@ -753,20 +761,20 @@ class figure(object):  # fixme inline docs, implementation
         """
         if len(pts) < 2:
             return
-        self.ps('%s %s moveto' % (pts[0].x, pts[0].y))
+        self.ps('%f %f moveto' % (pts[0].x, pts[0].y))
         for pt in pts[1:]:
-            self.ps('%s %s lineto' % (pt.x, pt.y))
+            self.ps('%f %f lineto' % (pt.x, pt.y))
         if kwargs.get('close', False):
             self.ps('closepath')
         self.ps('stroke')
 
     def arrow(self, u, v):
         """Draw an arrow from u to v."""
-        self.ps('%s %s %s %s arrow' % (u.x, u.y, v.x, v.y))
+        self.ps('%f %f %f %f arrow' % (u.x, u.y, v.x, v.y))
 
     def arrowtodot(self, u, v):
         """Draw an arrow from u to v which looks okay if there's a dot at v."""
-        self.ps('%s %s %s %s arrowtodot' % (u.x, u.y, v.x, v.y))
+        self.ps('%f %f %f %f arrowtodot' % (u.x, u.y, v.x, v.y))
 
     def linelimits(self, lin):
         """The points where lin intersects the edges of the drawing region.
@@ -804,12 +812,12 @@ class figure(object):  # fixme inline docs, implementation
 
     def circle(self, circ, startang=0, endang=360):
         """Draw an arc of the given circle."""
-        self.ps('%s %s %s %s %s arc stroke'
+        self.ps('%f %f %f %f %f arc stroke'
                 % (circ.o.x, circ.o.y, circ.r, startang, endang))
 
     def curve(self, a, b, c, d):
         """Draw a cubic Bezier spline with the given control points."""
-        self.ps('%s %s moveto %s %s %s %s %s %s curveto stroke'
+        self.ps('%f %f moveto %f %f %f %f %f %f curveto stroke'
                 % (a.x, a.y, b.x, b.y, c.x, c.y, d.x, d.y))
 
     def qurve(self, a, b, c):
@@ -839,34 +847,37 @@ class figure(object):  # fixme inline docs, implementation
         """Place text at position pt.
 
         The align argument is the same as the argument to \\makebox
-        in the LaTeX picture environment.
+        in the LaTeX picture environment, or None for centering.
 
         Adjustments to the label's position can be given via the
         offset argument, which is a vec in drawing coordinates (i.e.,
         its x and y components are in PostScript points).
         """
-        pos = self.affine(pt) + self._NORMAL_OFFSET[align] + offset
-        # use %f here because TeX doesn't like exponential notation
+        if align is None:
+            baseoffset = vec.zero
+        else:
+            baseoffset = self._NORMAL_OFFSET[align]
+        pos = self.affine(pt) + baseoffset + offset
         self.tex('\\put(%f,%f){\\makebox(0,0)[%s]{%s}}'
                  % (pos.x, pos.y, align, text))
 
     def translate(self, dx, dy):
         """Translate the figure coordinate system by (dx,dy)."""
         self.affine = self.affine * translate(dx,dy)
-        self.ps('%s %s translate' % (dx,dy))
+        self.ps('%f %f translate' % (dx,dy))
 
     def scale(self, x, y):
         """Scale the figure coordinate system by (x,y)."""
         self.affine = self.affine * scale(x,y)
-        self.ps('%s %s scale' % (x,y))
+        self.ps('%f %f scale' % (x,y))
 
     def rtangmark(self, a, b, c, size=4):
         """Add a right angle mark to the angle a-b-c."""
         # fixme does this work in distorted coords?
         leg1 = size*unit(b-a)/self.xscale
         leg2 = size*unit(c-b)/self.xscale
-        self.ps('%s %s moveto %s %s 2 copy neg exch neg exch rmoveto '
-            '%s %s rlineto rlineto stroke'
+        self.ps('%f %f moveto %f %f 2 copy neg exch neg exch rmoveto '
+            '%f %f rlineto rlineto stroke'
             % (b.x, b.y, leg1.x, leg1.y, leg2.x, leg2.y))
 
     def angmark(self, a, b, c, size=4):
@@ -874,23 +885,23 @@ class figure(object):  # fixme inline docs, implementation
         # fixme does this work in distorted coords?
         self.circle(circle(b, size/self.xscale), (a-b).angle, (c-b).angle)
 
-    def segmark(self, pt1, pt2, n, size=4, gap=2, angle=60):
+    def segmark(self, pt1, pt2, n, size=4, gap=2, angle=60, prop=1/2):
         """Add tick marks to the middle of the segment pt1-pt2."""
         # fixme move bulk of PS code into figure._PSPROC
-        midpt = (pt1 + pt2)/2
+        pt = (1-prop)*pt1 + prop*pt2
         v = vec.polar(size/2, angle)
-        self.ps('%s %s moveto' % (midpt.x, midpt.y))
+        self.ps('%f %f moveto' % (pt.x, pt.y))
         self.ps('{')
         self.ps('currentpoint translate')
-        self.ps('%s rotate' % (pt2 - pt1).angle)
-        self.ps('%s currentlinewidth add %s mul 2 div neg 0 rmoveto' % (gap, n))
-        self.ps('%s %s' % (v.x, v.y))
-        self.ps('1 1 %s {' % n)
+        self.ps('%f rotate' % (pt2 - pt1).angle)
+        self.ps('%f currentlinewidth add %d mul 2 div neg 0 rmoveto' % (gap, n))
+        self.ps('%f %f' % (v.x, v.y))
+        self.ps('1 1 %d {' % n)
         self.ps('   pop')
         self.ps('   2 copy neg exch neg exch rmoveto')
         self.ps('   2 copy 2 mul exch 2 mul exch rlineto')
         self.ps('   2 copy neg exch neg exch rmoveto')
-        self.ps('   %s currentlinewidth add 0 rmoveto' % gap)
+        self.ps('   %f currentlinewidth add 0 rmoveto' % gap)
         self.ps('} for')
         self.ps('pop pop stroke')
         self.ps('} drawing')
