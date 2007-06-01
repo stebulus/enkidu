@@ -768,6 +768,10 @@ class figure(object):  # fixme inline docs, implementation
             self.ps('closepath')
         self.ps('stroke')
 
+    def polygon(self, *pts):
+        """Draw a closed sequence of line segments."""
+        return self.polyline(*pts, **{'close': True})
+
     def arrow(self, u, v):
         """Draw an arrow from u to v."""
         self.ps('%f %f %f %f arrow' % (u.x, u.y, v.x, v.y))
