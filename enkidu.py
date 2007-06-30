@@ -1,14 +1,4 @@
-"""Enkidu: generating PostScript/LaTeX figures.
-
-Classes:
-    vec         a vector/point (we don't distinguish)
-    line        a line
-    circle      a circle
-    affine      an affine transformation
-    figure      a diagram
-
-Angles are always in degrees; 0 is east, 90 is north.
-"""
+"""Enkidu: software for making (esp. geometric) PostScript/LaTeX figures."""
 from __future__ import division
 from os.path import splitext, extsep
 from math import atan2, cos, pi, sin, sqrt
@@ -653,7 +643,7 @@ class GeometryError(Exception):
     """Raised when a necessary geometrical condition is not satisfied."""
     pass
 
-class figure(object):  # fixme inline docs, implementation
+class figure(object):
     """A figure."""
     _PSPROC = """\
 .4 setlinewidth
@@ -851,14 +841,48 @@ class figure(object):  # fixme inline docs, implementation
         self.ps('%f %f %f %f %f arc stroke'
                 % (circ.o.x, circ.o.y, circ.r, startang, endang))
 
+    def _curveto(self, a, b, c):
+        self.ps('%f %f %f %f %f %f curveto' % (a.x, a.y, b.x, b.y, c.x, c.y))
+
     def curve(self, a, b, c, d):
         """Draw a cubic Bezier spline with the given control points."""
-        self.ps('%f %f moveto %f %f %f %f %f %f curveto stroke'
-                % (a.x, a.y, b.x, b.y, c.x, c.y, d.x, d.y))
+        self.ps('%f %f moveto' % (a.x, a.y))
+        self._curveto(b, c, d)
+        self.ps('stroke')
+
+    def _q2c(self, a, b, c):
+        return a, (a + 2*b)/3, (2*b + c)/3, c
 
     def qurve(self, a, b, c):
         """Draw a quadratic Bezier spline with the given control points."""
-        self.curve(a, (a + 2*b)/3, (2*b + c)/3, c)
+        self.curve(*self._q2c(a, b, c))
+
+    def approxcurve(self, f, df, a, b, n):
+        """Draw an approximation of a curve using parabolic arcs.
+
+        f is a parameterization of the curve; it is a function taking
+        a single numeric argument and returning a vec representing
+        that point on the curve.
+
+        df is a parameterization of the tangent direction; it takes
+        a single numeric argument and returns a vec representing the
+        direction of the tangent to the curve at that point.
+
+        The curve will be approximated with n parabolic arcs,
+        starting at the point with parameter value a and ending at
+        the point with parameter value b.  The intermediate points
+        where one parabolic arc ends and the next begins have evenly
+        spaced parameters.  (Whether this means they are evenly spaced
+        points depends, of course, on the parameterization.)
+        """
+        trange = [a + k*(b-a)/n for k in range(n+1)]
+        pts = [f(t) for t in trange]
+        tgs = [line.ptdir(pt, df(t)) for pt, t in zip(pts, trange)]
+        self.ps('%f %f moveto' % (pts[0].x, pts[0].y))
+        for pt, tg, nextpt, nexttg in zip(pts[:-1], tgs[:-1], pts[1:], tgs[1:]):
+            _, ctl1, ctl2, _ = self._q2c(pt, meet(tg, nexttg), nextpt)
+            self._curveto(ctl1, ctl2, nextpt)
+        self.ps('stroke')
 
     def dashed(self):
         """Make future lines dashed."""
@@ -941,93 +965,6 @@ class figure(object):  # fixme inline docs, implementation
         self.ps('} for')
         self.ps('pop pop stroke')
         self.ps('} drawing')
-
-# class figure(object):
-# 
-# 
-# /vadd {  % x1 y1 x2 y2 vadd x y
-#     exch 4 -1 roll add 3 1 roll add
-# } def
-# /vmul {  % x y c vmul x' y'
-#     dup 4 -1 roll mul 3 1 roll mul
-# } def
-# /vsub {  % x1 y1 x2 y2 vsub x y
-#     -1 vmul vadd
-# } def
-# /lincomb {  % x1 y1 x2 y2 a b lincomb x' y'
-#     exch 4 1 roll vmul 5 2 roll vmul vadd
-# } def
-# /vdot {  % x1 y1 x2 y2 vdot c
-#     exch 4 -1 roll mul 3 1 roll mul add
-# } def
-# /det {  % a b c d det ad-bc
-#     4 -1 roll mul 3 1 roll mul sub
-# } def
-# 
-# /line {  % a b c line lin
-#     [ 4 1 roll ]
-# } def
-# /linenormal {  % lin linenormal a b
-#     aload pop pop
-# } def
-# /lineconst {  % lin lineconst c
-#     aload pop 3 1 roll pop pop
-# } def
-# /pointnormal {  % x1 y1 a b pointnormal lin
-#     4 2 roll 3 index 3 index vdot line
-# } def
-# /pointslope {  % x1 y1 m pointslope lin
-#     -1 pointnormal
-# } def
-# /join {  % x1 y1 x2 y2 join lin
-#     3 index 3 index vsub rot90 pointnormal
-# } def
-# /intersect {  % lin1 lin2 intersect x y
-#     6 dict begin
-#         /lin2 exch def
-#         /lin1 exch def
-#         /a [ lin1 linenormal pop lin2 linenormal pop ] cvx def
-#         /b [ lin1 linenormal exch pop lin2 linenormal exch pop ] cvx def
-#         /c [ lin1 lineconst lin2 lineconst ] cvx def
-#         /detab a b det def
-#         c b det detab div
-#         a c det detab div
-#     end
-# } def
-# /q2c {  % x1 y1 x2 y2 q2c x1' y1' x2' y2' x3' y3'
-#     % p1 = (1/3) q0 + (2/3) q1
-#     % p2 = (1/3) q2 + (2/3) q1
-#     3 index 3 index currentpoint 2 3 div 1 3 div lincomb
-#     6 2 roll 4 2 roll
-#     3 index 3 index 2 3 div 1 3 div lincomb
-#     4 2 roll
-# } def
-# /qurveto {  % x1 y1 x2 y2 qurveto -
-#     q2c curveto
-# } def
-# /approxcurve {  % f df a b n approxcurve -
-#     2 dict begin
-#         /n exch def
-#         /b exch def
-#         /a exch def
-#         /df exch def
-#         /f exch def
-#         /dx b a sub n div def
-#         /tangent { dup f 1 index df pointslope } def
-#         a dup f moveto
-#         1 1 n {
-#             dx mul a add /x exch def
-#             /pt1 [ x dup f ] cvx def
-#             /control [ x tangent x dx sub tangent intersect ] cvx def
-#             control pt1 qurveto
-#         } for
-#     end
-# } def
-# 
-# /dashed {  % proc dashed
-#     gsave [1 2] .5 setdash exec grestore
-# } def
-# """
 
 _USAGE = """\
 Usage:
