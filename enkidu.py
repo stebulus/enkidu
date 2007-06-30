@@ -360,6 +360,7 @@ class circle(object):
         circ.o          the centre of circ
         circ.r          the radius of circ
         circ.pt(ang)    the point on circ at angle ang
+        circ.tgpts(pt)  the points of tangency of the tangents to circ from pt
 
     Ways to make circles:
         circle(o, r)            the circle with centre o and radius r
@@ -401,6 +402,16 @@ class circle(object):
     def pt(self, ang):
         """The point on this circle at angle ang."""
         return self.o + vec.polar(self.r, ang)
+
+    def tgpts(self, pt):
+        """The points of tangency of the tangents to this circle from pt.
+
+        Raises GeometryError if pt is not external to this circle.
+        """
+        pts = intersect(self, circle.ondiam(self.o, pt))
+        if len(pts) != 2:
+            raise GeometryError('%s is external to %s' % (pt, self))
+        return pts
 
 def incircle(a, b, c):
     """The incircle of triangle a b c.
