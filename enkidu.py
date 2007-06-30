@@ -365,6 +365,9 @@ class circle(object):
         circle(o, r)            the circle with centre o and radius r
         circle.ondiam(a, b)     the circle on segment a b as a diameter
         circle.through(a, b, c) the circle through points a, b, c
+        circle.opt(o, pt)       the circle with centre o and through pt
+        circle.otg(o, tg)       the circle with centre o and tangent to tg
+        incircle(a, b, c)       the incircle of triangle a b c
     """
     def __init__(self, o, r):
         """The circle with centre o and radius r.
@@ -376,23 +379,35 @@ class circle(object):
         if r < 0:
             raise GeometryError('radius %s is negative' % r)
     @classmethod
+    def opt(cls, o, pt):
+        """The circle with centre o and passing through pt."""
+        return cls(o, (o-pt).norm)
+    @classmethod
     def ondiam(cls, pt1, pt2):
         """The circle with pt1 and pt2 as endpoints of a diameter."""
-        return cls((pt1+pt2)/2, (pt1-pt2).norm/2)
+        return cls.opt((pt1+pt2)/2, pt2)
     @classmethod
     def through(cls, a, b, c):
         """The circle through points a, b, c.
 
         Raises GeometryError if a, b, c are collinear.
         """
-        o = meet(perpbisect(a, b), perpbisect(b, c))
-        return cls(o, (o-a).norm)
+        return cls.opt(meet(perpbisect(a, b), perpbisect(b, c)), a)
+    @classmethod
+    def otg(cls, o, tg):
+        """The circle with centre o and tangent to tg."""
+        return cls.opt(o, foot(o, tg))
 
     def pt(self, ang):
         """The point on this circle at angle ang."""
         return self.o + vec.polar(self.r, ang)
 
-# fixme incircle
+def incircle(a, b, c):
+    """The incircle of triangle a b c.
+
+    Raises GeometryError if the three points are collinear.
+    """
+    return circle.otg(meet(angbisect(a,b,c), angbisect(b,c,a)), join(a, b))
 
 class inversion(object):
     """An inversion of the plane.
