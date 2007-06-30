@@ -1,7 +1,5 @@
 """Enkidu: generating PostScript/LaTeX figures.
 
-(fixme)
-
 Classes:
     vec         a vector/point (we don't distinguish)
     line        a line
@@ -37,21 +35,29 @@ def withmax(func, items):
     """The item in items with the maximum value of func."""
     return withmin(lambda x: -func(x), items)
 
+def xcoord(pt):
+    """The x coordinate of pt.  (Usually written 'pt.x'.)"""
+    return pt.x
+
+def ycoord(pt):
+    """The y coordinate of pt.  (Usually written 'pt.y'.)"""
+    return pt.y
+
 def leftmost(pts):
     """The leftmost of the points in pts."""
-    return withmin(lambda pt: pt.x, pts)
+    return withmin(xcoord, pts)
 
 def rightmost(pts):
     """The rightmost of the points in pts."""
-    return withmax(lambda pt: pt.x, pts)
+    return withmax(xcoord, pts)
 
 def bottommost(pts):
     """The bottommost of the points in pts."""
-    return withmin(lambda pt: pt.y, pts)
+    return withmin(ycoord, pts)
 
 def topmost(pts):
     """The topmost of the points in pts."""
-    return withmax(lambda pt: pt.y, pts)
+    return withmax(ycoord, pts)
 
 def outermost(pts):
     """The outermost two of the (assumed collinear) points in pts."""
