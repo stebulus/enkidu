@@ -1,0 +1,3 @@
+* make something for the rlap/phantom trick
+* add parabolas and other conics (qv $svn/site/trunk/math/parabtan/parabola.py)
+* flesh out examples (curve/qurve, etc)
