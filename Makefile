@@ -1,3 +1,4 @@
+SHELL=/bin/bash
 PDFLATEX=pdflatex -halt-on-error -interaction nonstopmode -file-line-error
 
 default : enkidu.pdf
