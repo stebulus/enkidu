@@ -45,11 +45,8 @@ meta/title : meta/version
 %-src.tex : %.py
 	awk -f py2src $< >$@
 
-# epstopdf (from teTeX) gets the bounding box right, but if allowed
-# to run ghostscript itself, gets the status code wrong; ps2pdf (from
-# ghostscript) gets the status code right but the bounding box wrong.
 %-fig.pdf : %-fig.eps
-	epstopdf --nogs $< |ps2pdf - $@
+	epstopdf --outfile=$@ $<
 %-fig.eps %-fig.tex : %.py enkidu.py
 	python $< $*-fig pdf
 
