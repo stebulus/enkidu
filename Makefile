@@ -27,7 +27,7 @@ $(tardir).tar.bz2 $(tardir).zip : $(tarrable)
 enkidu.pdf : enkidu.tex meta.tex enkidudoc.cls $(figures_pdf) $(figures_src)
 	rm -f enkidu.toc
 	$(PDFLATEX) $<
-	while egrep '(Rerun|No file enkidu.(aux|toc))' enkidu.log >/dev/null; \
+	while egrep '(Rerun to get|No file enkidu.(aux|toc))' enkidu.log >/dev/null; \
 	    do $(PDFLATEX) $< ; done
 
 meta.tex : meta/title meta/author meta/date meta/url
