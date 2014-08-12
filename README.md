@@ -9,8 +9,3 @@ Included here:
 * `enkidu.pdf`: Documentation.
 * everything else: Source code for the documentation
   (which can be created anew with `make`).
-
-Software and documentation copyright © 2007 Steven Taschuk
-The Enkidu software and its documentation are licensed to the public
-under the terms of the Creative Commons Attribution 2.5 license;
-see http://creativecommons.org/licenses/by/2.5
