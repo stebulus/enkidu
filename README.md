@@ -9,3 +9,5 @@ Included here:
 * `enkidu.pdf`: Documentation.
 * everything else: Source code for the documentation
   (which can be created anew with `make`).
+
+See also the [project homepage](http://www.amotlpaa.org/enkidu).
